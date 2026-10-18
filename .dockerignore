@@ -1,0 +1,16 @@
+__pycache__
+*.sqlite3*
+.env*
+.git
+tmp
+test_*.py
+*.pdf
+.venv
+
+.firebase/
+*-debug.log
+*service-account*.json
+*credentials*.json
+*.pem
+*.key
+*.bundle

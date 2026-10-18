@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // All access goes through the authenticated FastAPI backend.
+    // Admin/server SDKs bypass these rules; IAM and server ownership checks apply.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

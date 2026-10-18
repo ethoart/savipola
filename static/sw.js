@@ -1,0 +1,10 @@
+const CACHE='savipola-firestore-v8';
+const ASSETS=['/static/firebase-auth.js','/static/cloud-copy.js','/static/responsive.css','/static/layout.js','/static/fonts/fonts.css','/static/fonts/noto-sans-latin-400-normal.woff2','/static/fonts/noto-sans-latin-500-normal.woff2','/static/fonts/noto-sans-latin-600-normal.woff2','/static/fonts/noto-sans-latin-700-normal.woff2','/static/fonts/noto-sans-sinhala-sinhala-400-normal.woff2','/static/fonts/noto-sans-sinhala-sinhala-500-normal.woff2','/static/fonts/noto-sans-sinhala-sinhala-600-normal.woff2','/static/fonts/noto-sans-sinhala-sinhala-700-normal.woff2','/static/fonts/noto-sans-tamil-tamil-400-normal.woff2','/static/fonts/noto-sans-tamil-tamil-500-normal.woff2','/static/fonts/noto-sans-tamil-tamil-600-normal.woff2','/static/fonts/noto-sans-tamil-tamil-700-normal.woff2','/static/polish.css','/static/vendor/lucide.min.js','/','/static/mobile.css','/static/marketplace.css','/static/mobile.js','/static/i18n.js','/static/everyday.js','/static/transport.js','/static/icon.svg','/static/photos/tomatoes.jpg','/static/photos/carrots.jpg','/static/photos/potatoes.jpg','/static/photos/bananas.jpg','/static/photos/cabbage.jpg','/static/photos/onions.jpg','/static/photos/harvest.jpg'];
+self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).then(()=>self.skipWaiting()));});
+self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
+self.addEventListener('fetch',event=>{
+  const url=new URL(event.request.url);
+  // Private API responses and message content are never cached by the service worker.
+  if(event.request.method!=='GET'||url.origin!==self.location.origin||!ASSETS.includes(url.pathname))return;
+  event.respondWith(fetch(event.request).then(response=>{if(response.ok){const clone=response.clone();caches.open(CACHE).then(cache=>cache.put(event.request,clone));}return response;}).catch(()=>caches.match(event.request)));
+});
