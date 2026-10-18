@@ -4,6 +4,8 @@ Working evaluation prototype for Google Cloud AI Builder Cup 2026, Sustainabilit
 
 **Public app:** https://savipola-2cpvvetnwq-uc.a.run.app
 
+**3:15 demonstration video:** https://storage.googleapis.com/savipola-demo-1056643858922/watch.html
+
 **Hyper Way:** leader Sathini Dewmanthi Jayamaha; member Sandun Nayanaka Subasingha.
 
 ## Try the application

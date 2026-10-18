@@ -15,13 +15,16 @@ window.SaviPolaPhone={
   },
   async review(role,language){
     if(!(window.SaviPolaRuntime.config.reviewOnly||window.SaviPolaRuntime.config.reviewAccess)||!['farmer','buyer','driver','worker'].includes(role))throw new Error('Evaluation sign-in is unavailable.');
-    await this.setup(language);
     const password='Savipola'+role[0].toUpperCase()+role.slice(1)+'Review2026!';
-    const credential=await this.sdk.signInWithEmailAndPassword(this.auth,role+'@savipola.example',password);
-    try{
-      const id_token=await credential.user.getIdToken();
-      return await window.SaviPolaRuntime.request('/auth/firebase/session','POST',{id_token});
-    }finally{await this.sdk.signOut(this.auth);this.reset();}
+    // Published fictional accounts use the official REST exchange, avoiding
+    // browser persistence requirements in embedded evaluation browsers.
+    const response=await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key='+encodeURIComponent(window.SaviPolaRuntime.config.firebase.apiKey),{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email:role+'@savipola.example',password,returnSecureToken:true})
+    });
+    const identity=await response.json();
+    if(!response.ok)throw new Error('Evaluation sign-in unavailable: '+(identity.error?.message||response.status));
+    return await window.SaviPolaRuntime.request('/auth/firebase/session','POST',{id_token:identity.idToken});
   },
   async emailRegister(email,password,profile,language){
     await this.setup(language);
