@@ -4,6 +4,7 @@ from collections import Counter, defaultdict, deque
 import hashlib
 import hmac
 import json
+import logging
 import os
 import re
 import secrets
@@ -85,6 +86,10 @@ class MessageDraft(ai_service.Output):
 
 def phone_number(value):
     value = re.sub(r'[\s()-]', '', value)
+    if settings.REVIEW_ONLY:
+        if value in settings.REVIEW_PHONES:
+            return value
+        raise HTTPException(403, 'Use the published evaluation accounts. This build does not send SMS.')
     if re.fullmatch(r'07\d{8}', value): value = '+94'+value[1:]
     if not re.fullmatch(r'\+947\d{8}', value):
         raise HTTPException(422, 'Enter a Sri Lankan mobile number, for example 0771234567.')
@@ -139,7 +144,8 @@ def install(app, conn, one, rows, snapshot):
     def public_profile(db, uid, own=False):
         p = one(db, 'SELECT p.id,p.name,p.role,p.district,p.avatar,p.phone,pr.language,pr.bio,pr.skills,pr.is_demo FROM people p JOIN profiles pr ON pr.person_id=p.id WHERE p.id=?', (uid,))
         if not p: raise HTTPException(404, 'Profile not found.')
-        p['phone_verified'] = bool(one(db,'SELECT id FROM firebase_identities WHERE person_id=?',(uid,)))
+        p['identity_verified'] = bool(one(db,'SELECT id FROM firebase_identities WHERE person_id=?',(uid,)))
+        p['phone_verified'] = p['identity_verified'] and not settings.REVIEW_ONLY
         if not own: p.pop('phone',None)
         return p
 
@@ -233,7 +239,8 @@ def install(app, conn, one, rows, snapshot):
             with conn() as db:
                 owned=db.execute("UPDATE translation_jobs SET status='done',lease_until=0 WHERE id=? AND status='processing' AND lease_until=?",(job['id'],now+120)).rowcount
                 if owned:db.execute('UPDATE translations SET text=?,status=?,provider=? WHERE message_id=? AND language=?',(translated,'ready','Vertex AI / '+meta['model'],mid,target))
-        except Exception:
+        except Exception as exc:
+            logging.warning('translation_unavailable type=%s code=%s',type(exc).__name__,getattr(exc,'code',None))
             with conn() as db:
                 attempts=job['attempts']+1
                 owned=db.execute("UPDATE translation_jobs SET status=?,lease_until=0,next_attempt=? WHERE id=? AND status='processing' AND lease_until=?",('failed' if attempts>=3 else 'pending',time.time()+60*2**(attempts-1),job['id'],now+120)).rowcount
@@ -300,6 +307,8 @@ def install(app, conn, one, rows, snapshot):
     @app.get('/api/runtime-config')
     def runtime_config():
         return {'authMode':settings.AUTH_MODE,'production':settings.PRODUCTION,'demoEnabled':settings.DEMO,
+                'reviewOnly':settings.REVIEW_ONLY,
+                'pollOnly':os.getenv('SAVIPOLA_POLL_ONLY')=='1',
                 'firebase':settings.FIREBASE if settings.AUTH_MODE=='firebase' else None,
                 'savedHarvests':saved_harvests.feature_config()}
 
@@ -314,11 +323,12 @@ def install(app, conn, one, rows, snapshot):
         if settings.AUTH_MODE!='firebase':raise HTTPException(404,'Not found.')
         rate_limit(('firebase-session',request.client.host),20,300)
         claims,cookie=firebase_identity.exchange(v.id_token)
-        phone=phone_number(claims['phone_number'])
+        phone=None if settings.REVIEW_ONLY else phone_number(claims['phone_number'])
         with conn() as db:
             identity=one(db,'SELECT person_id FROM firebase_identities WHERE uid=?',(claims['uid'],))
             if identity:uid=identity['person_id']
             else:
+                if settings.REVIEW_ONLY:raise HTTPException(403,'Evaluation account has not been provisioned.')
                 if not v.profile:raise HTTPException(409,'Create your marketplace profile first.')
                 if one(db,'SELECT id FROM people WHERE phone=?',(phone,)):
                     raise HTTPException(409,'An existing profile needs support-assisted identity migration.')
@@ -432,11 +442,14 @@ def install(app, conn, one, rows, snapshot):
                 queue_translation(db,mid,target)
             item=payload(db,one(db,'SELECT * FROM messages WHERE id=?',(mid,)),user['id'])
         await broadcast(cid,{'type':'message','message_id':mid})
-        if target!=v.source_language:tasks.add_task(translate_message,mid,target,cid)
+        if target!=v.source_language:
+            # Request-based Cloud Run billing suspends CPU after a response ends.
+            if os.getenv('SAVIPOLA_POLL_ONLY')=='1':await translate_message(mid,target,cid)
+            else:tasks.add_task(translate_message,mid,target,cid)
         return {'message':item}
 
     @app.post('/api/chat/messages/{mid}/translate')
-    def retry(mid:int,request:Request,tasks:BackgroundTasks):
+    async def retry(mid:int,request:Request,tasks:BackgroundTasks):
         user=session(request,True);rate_limit(('translate',user['id']),12)
         with conn() as db:
             m=one(db,'SELECT * FROM messages WHERE id=?',(mid,))
@@ -451,7 +464,8 @@ def install(app, conn, one, rows, snapshot):
             else:db.execute('INSERT INTO translations(message_id,language,status,created) VALUES(?,?,?,?)',(mid,target,'pending',time.time()))
             queue_translation(db,mid,target)
             db.execute("UPDATE translation_jobs SET status='pending',next_attempt=0,lease_until=0,attempts=0 WHERE message_id=? AND language=?",(mid,target))
-        tasks.add_task(translate_message,mid,target,m['conversation_id'])
+        if os.getenv('SAVIPOLA_POLL_ONLY')=='1':await translate_message(mid,target,m['conversation_id'])
+        else:tasks.add_task(translate_message,mid,target,m['conversation_id'])
         return {'ok':True}
 
     @app.post('/api/chat/conversations/{cid}/assist')
@@ -493,6 +507,8 @@ def install(app, conn, one, rows, snapshot):
 
     @app.websocket('/api/chat/conversations/{cid}/live')
     async def socket(cid:int,websocket:WebSocket):
+        if os.getenv('SAVIPOLA_POLL_ONLY')=='1':
+            await websocket.close(code=1008);return
         origin=websocket.headers.get('origin')
         if ((settings.PRODUCTION or settings.AUTH_MODE=='firebase') and origin!=settings.ORIGIN) or (origin and urlsplit(origin).netloc!=websocket.headers.get('host')):
             await websocket.close(code=1008);return

@@ -2,7 +2,7 @@
 
 Prepared 18 October 2026 · source version 0.6.0
 
-**Status: production-oriented integration package, awaiting cloud staging and release approval by your team.** It has not been deployed to your account. Offline tests pass; live Firebase SMS, Vertex requests, Cloud SQL transactions, real reCAPTCHA, device layout, backup restore and load tests have not been performed. Do not describe this version as production-certified.
+**Historical paid HA deployment guide.** The current evaluation deployment uses a different, lower-cost configuration: see EVALUATION_DEPLOYMENT.md and CLOUD_VALIDATION.md. Do not run this guide for the US$10 evaluation budget. Real SMS/reCAPTCHA, backup restoration and load tests are unverified; this is not a production-readiness certification.
 
 ## 1. What each service does
 

@@ -18,16 +18,22 @@ def checked(call, *args, **kwargs):
         return call(*args, app=admin(), **kwargs)
     except (auth.InvalidIdTokenError, auth.InvalidSessionCookieError, auth.RevokedIdTokenError,
             auth.RevokedSessionCookieError, auth.UserDisabledError, auth.UserNotFoundError, ValueError):
-        raise HTTPException(401, 'Sign in again to verify your phone.') from None
+        raise HTTPException(401, 'Sign in again to verify your account.') from None
     except (exceptions.FirebaseError, GoogleAuthError):
-        raise HTTPException(503, 'Phone verification is temporarily unavailable.') from None
+        raise HTTPException(503, 'Account verification is temporarily unavailable.') from None
 
 def exchange(token):
     from firebase_admin import auth
     claims = checked(auth.verify_id_token, token, check_revoked=True)
     age = time.time() - claims.get('auth_time', 0)
-    if not -30 <= age <= 300 or claims.get('firebase', {}).get('sign_in_provider') != 'phone' or not claims.get('phone_number'):
-        raise HTTPException(401, 'Verify your phone again before signing in.')
+    provider = claims.get('firebase', {}).get('sign_in_provider')
+    if settings.REVIEW_ONLY:
+        expected = settings.REVIEW_IDENTITIES.get(claims.get('uid'))
+        allowed = provider == 'password' and expected is not None and claims.get('email') == expected
+    else:
+        allowed = provider == 'phone' and bool(claims.get('phone_number'))
+    if not -30 <= age <= 300 or not allowed:
+        raise HTTPException(401, 'Verify your account again before signing in.')
     cookie = checked(auth.create_session_cookie, token, expires_in=datetime.timedelta(days=5))
     return claims, cookie
 

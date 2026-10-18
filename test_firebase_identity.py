@@ -19,11 +19,17 @@ def run():
         assert mint.call_args.kwargs['expires_in'].days==5
         for bad in ({**good,'auth_time':time.time()-301},{**good,'auth_time':time.time()+60},{**good,'firebase':{'sign_in_provider':'password'}},{**good,'phone_number':None}):
             verify.return_value=bad;denied(lambda:identity.exchange('ID-TOKEN'),401)
+        with patch.object(identity.settings,'REVIEW_ONLY',True):
+            review={'uid':'savipola-review-farmer','email':'farmer@savipola.example','auth_time':time.time(),'firebase':{'sign_in_provider':'password'}}
+            verify.return_value=review
+            assert identity.exchange('ID-TOKEN')[0]['uid']==review['uid']
+            for bad in ({**review,'uid':'unapproved-user'},{**review,'email':'other@example.com'},{**review,'firebase':{'sign_in_provider':'phone'}},{**review,'auth_time':time.time()-301}):
+                verify.return_value=bad;denied(lambda:identity.exchange('ID-TOKEN'),401)
         verify.side_effect=auth.RevokedIdTokenError('revoked');denied(lambda:identity.exchange('ID-TOKEN'),401)
         verify.side_effect=exceptions.UnavailableError('outage');denied(lambda:identity.exchange('ID-TOKEN'),503)
         with patch.object(auth,'verify_session_cookie',side_effect=auth.RevokedSessionCookieError('revoked')) as session:
             denied(lambda:identity.verify('COOKIE'),401)
             assert session.call_args.kwargs['check_revoked'] is True
-    print('PASS: recent phone-only ID tokens, session lifetime, revocation and upstream-outage mapping (Firebase SDK calls mocked)')
+    print('PASS: normal phone tokens, allowlisted evaluation password tokens, recency, revocation and outage mapping (Firebase SDK calls mocked)')
 
 if __name__=='__main__':run()

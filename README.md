@@ -4,11 +4,19 @@ Working prototype for **Google Cloud AI Builder Cup 2026**, recommended theme: *
 
 ## Hyper Way submission package
 
-Version 0.6.0 adds private Firestore saved-harvest shortlists, alongside Firebase verified-phone sign-in, server-side Firebase sessions, CSRF protection, shared SQL quotas, persistent translation recovery and a production configuration that disables demo data and legacy screens. **Start with [PRODUCTION_DEPLOYMENT.md](PRODUCTION_DEPLOYMENT.md)** for the service map, Firebase setup, deployment commands, staging tests, costs and remaining launch blockers. The deployment script is `deploy_production.sh`; `deploy.sh` remains a sample-data hackathon deployment.
+**Public prototype:** https://savipola-2cpvvetnwq-uc.a.run.app
 
-**Team Hyper Way:** Team leader Sathini Dewmanthi Jayamaha; team member Sandun Nayanaka Subasingha. Start with `SUBMISSION_HANDOFF.md` for the confirmed AI Builder Cup 2026 portal requirements, minimum setup, source transfer and evidence limits. The local team is preparing the official 16-slide template and PDF. The older PDF brief under `docs/` is historical supporting material, not the prescribed deck.
+**Team leader:** Sathini Dewmanthi Jayamaha. **Team member:** Sandun Nayanaka Subasingha.
 
-This package has not been deployed to your Google Cloud account. It is production-oriented source awaiting live staging and additional product/operational work; it is not a production-readiness certification.
+Choose **Try as farmer** or **Try as buyer** on the welcome page. These are shared fictional evaluation accounts using actual Firebase email/password authentication. All SMS regions remain blocked and phone sign-in is disabled. Use separate browser profiles or a normal and private window to keep farmer and buyer sessions separate. Do not enter personal information.
+
+Start with [EVALUATION_DEPLOYMENT.md](EVALUATION_DEPLOYMENT.md) for the actual cloud configuration, published evaluation credentials, budget and expiry. [CLOUD_VALIDATION.md](CLOUD_VALIDATION.md) records the successful live checks. The older paid HA deployment script is outside the approved US$10 monthly target and requires an explicit cost-review flag before it runs.
+
+Cloud Run hosts the app; Firebase supplies verified identities; Firestore persists private saved-harvest references; Cloud SQL stores the trade ledger and messages; Gemini through Vertex AI translates fresh chat messages. The source defaults to local mode and leaves evaluation access disabled unless explicitly configured.
+
+The evaluation database will be **permanently deleted on 10 January 2027 at 00:00 UTC**, as authorized by the team, before its three-month Firebase SQL Connect trial becomes paid. The app will then stop working until another database is connected. Other services are metered; this is not a provider-enforced US$10 cap.
+
+This is an evaluation prototype. Real-user onboarding, load/recovery testing, moderation and operational monitoring remain future work. The older brief under `docs/` is historical supporting material; use the prescribed 16-slide challenge deck for submission.
 
 ## Run locally
 
@@ -27,7 +35,7 @@ Open http://127.0.0.1:8000. SQLite preserves local changes. Sample profiles, pri
 
 ## What changed
 
-- **Persistent saved harvests:** verified Firebase accounts can save/remove a harvest and reload their private shortlist across devices. The backend writes real Cloud Firestore documents using ADC. Original stock and prices stay in SQL. Firestore is off in the default local demo and requires configured cloud credentials in Firebase mode. No live Firestore request has been verified here.
+- **Persistent saved harvests:** verified Firebase accounts can save/remove a harvest and reload their private shortlist across devices. The backend writes real Cloud Firestore documents using ADC. Original stock and prices stay in SQL. Firestore is off in the default local demo and requires configured cloud credentials in Firebase mode. A live buyer save/read and farmer-account isolation check passed on 18 October 2026.
 
 - **Multilingual reflow:** locally bundled Sinhala/Tamil/Latin fonts, natural script spacing, taller line heights and responsive controls. Narrow screens use fewer columns; header and navigation adapt to available space and larger text. Chat and popups respond to viewport height. See `RESPONSIVE_VALIDATION.md` for actual verification limits and the included `/responsive-check` browser checker.
 - **Visual refinement:** a consistent outlined icon set, calmer colours, aligned product cards and buttons, one marketplace search field, shorter mobile navigation and a two-column desktop registration introduction. Popups keep keyboard focus inside them, close on Escape and restore focus to the opening control. Reduced-motion preferences disable decorative movement. Lucide 0.468.0 is bundled locally with its licence; no external icon request is needed during app use.
@@ -46,7 +54,7 @@ Open http://127.0.0.1:8000. SQLite preserves local changes. Sample profiles, pri
 - **Cloud deployment:** Dockerfile, Cloud Run deployment script, Cloud SQL PostgreSQL backend and Secret Manager password injection.
 - **Audit:** successful AI calls record operation, model, latency and time. Failed or unconfigured calls never return fake AI results.
 
-See **GOOGLE_CLOUD_SETUP.md** to configure your project. Cloud source is implemented but has not been deployed to your account; no successful live Vertex request is claimed here.
+See **GOOGLE_CLOUD_SETUP.md** to configure your project. The deployed evaluation configuration and real Gemini translation evidence are documented in CLOUD_VALIDATION.md.
 
 ## Local demo / judge walkthrough
 
@@ -71,6 +79,7 @@ python test_cloud_security.py
 python test_firebase_identity.py
 python test_production_config.py
 python test_saved_harvests.py
+python test_review_access.py
 ```
 
 AI boundary tests use explicitly identified test fixtures; these are not live Gemini evidence. See VALIDATION.md and CLOUD_VALIDATION.md for results and limits.

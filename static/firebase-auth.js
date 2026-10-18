@@ -12,11 +12,22 @@ window.SaviPolaPhone={
     }
     this.auth.languageCode=language;
   },
+  async review(role,language){
+    if(!window.SaviPolaRuntime.config.reviewOnly||!['farmer','buyer'].includes(role))throw new Error('Evaluation sign-in is unavailable.');
+    await this.setup(language);
+    const password=role==='farmer'?'SavipolaFarmerReview2026!':'SavipolaBuyerReview2026!';
+    const credential=await this.sdk.signInWithEmailAndPassword(this.auth,role+'@savipola.example',password);
+    try{
+      const id_token=await credential.user.getIdToken();
+      return await window.SaviPolaRuntime.request('/auth/firebase/session','POST',{id_token});
+    }finally{await this.sdk.signOut(this.auth);this.reset();}
+  },
   async send(phone,profile,language){
+    const normalized=phone.replace(/[\s()-]/g,'').replace(/^0/,'+94');
+    if(window.SaviPolaRuntime.config.reviewOnly)throw new Error('Use the evaluation account buttons; phone sign-in is disabled.');
     await this.setup(language);
     this.verifier?.clear();
     this.verifier=new this.sdk.RecaptchaVerifier(this.auth,'sp-sms-send',{size:'invisible'});
-    const normalized=phone.replace(/[\s()-]/g,'').replace(/^0/,'+94');
     try{
       this.confirmation=await this.sdk.signInWithPhoneNumber(this.auth,normalized,this.verifier);
       this.profile=profile;this.verifier.clear();this.verifier=null;

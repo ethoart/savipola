@@ -69,6 +69,18 @@ def run():
                 assert sweep.status_code==200 and sweep.json()['processed']==1,sweep.text
                 assert a.post('/internal/translation-sweep',headers={'Authorization':'Bearer offline'}).json()['processed']==0
             assert b.get(f'/api/chat/conversations/{cid}/messages').json()['messages'][0]['translation']['status']=='ready'
+            # A request-based Cloud Run instance must finish model work before
+            # its response ends; it cannot depend on post-response CPU time.
+            with patch.dict(os.environ,{'SAVIPOLA_POLL_ONLY':'1','GOOGLE_CLOUD_PROJECT':'offline-test'}),patch('fastapi.BackgroundTasks.add_task',side_effect=AssertionError('Post-response task in polling deployment')):
+                with patch.object(ai_service,'generate',return_value=({'translated_text':'30 kg LKR 210'},{'model':'OFFLINE-TEST'})):
+                    inline=write(a,f'/api/chat/conversations/{cid}/messages',{'text':'30 kg LKR 210','source_language':'en','client_id':'inline-cloud-run-001'})
+                    assert inline.status_code==200,inline.text
+                    assert b.get(f'/api/chat/conversations/{cid}/messages').json()['messages'][-1]['translation']['status']=='ready'
+                with patch.object(ai_service,'generate',side_effect=RuntimeError('Model unavailable')):
+                    failed=write(a,f'/api/chat/conversations/{cid}/messages',{'text':'40 kg LKR 220','source_language':'en','client_id':'inline-cloud-run-002'}).json()['message']
+                with patch.object(ai_service,'generate',return_value=({'translated_text':'40 kg LKR 220'},{'model':'OFFLINE-TEST'})):
+                    assert write(b,f'/api/chat/messages/{failed["id"]}/translate').status_code==200
+                    assert b.get(f'/api/chat/conversations/{cid}/messages').json()['messages'][-1]['translation']['status']=='ready'
             from starlette.websockets import WebSocketDisconnect
             with a.websocket_connect(f'/api/chat/conversations/{cid}/live',headers={'Origin':'https://testserver'}) as socket:
                 assert socket.receive_json()['type']=='connected'

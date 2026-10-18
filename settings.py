@@ -4,6 +4,13 @@ from urllib.parse import urlsplit
 
 PRODUCTION = os.getenv('SAVIPOLA_ENV', 'local') == 'production'
 AUTH_MODE = os.getenv('SAVIPOLA_AUTH_MODE', 'local')
+REVIEW_ONLY = os.getenv('SAVIPOLA_REVIEW_ONLY', '0') == '1'
+# Legacy fictional profile contacts; evaluation sign-in uses Firebase password accounts.
+REVIEW_PHONES = ('+16505550101', '+16505550102')
+REVIEW_IDENTITIES = {
+    'savipola-review-farmer': 'farmer@savipola.example',
+    'savipola-review-buyer': 'buyer@savipola.example',
+}
 DEMO = os.getenv('SAVIPOLA_DEMO_MODE', '0' if PRODUCTION else '1') == '1'
 SEED = os.getenv('SAVIPOLA_SEED_DEMO', '0' if PRODUCTION else '1') == '1'
 ORIGIN = os.getenv('SAVIPOLA_PUBLIC_ORIGIN', '').rstrip('/')
@@ -18,6 +25,8 @@ FIREBASE = {'apiKey': os.getenv('FIREBASE_API_KEY', ''),
 def validate():
     if AUTH_MODE not in ('local', 'firebase'):
         raise RuntimeError('Unsupported SAVIPOLA_AUTH_MODE')
+    if REVIEW_ONLY and AUTH_MODE != 'firebase':
+        raise RuntimeError('Evaluation accounts require Firebase authentication')
     if AUTH_MODE == 'firebase' and not all(FIREBASE.values()):
         raise RuntimeError('Firebase web configuration is incomplete')
     if os.getenv('SAVIPOLA_FIRESTORE_ENABLED')=='1' and AUTH_MODE!='firebase':

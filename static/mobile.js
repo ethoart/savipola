@@ -5,7 +5,7 @@ const layout=window.SaviPolaLayout?.(root,R.isPreview);
 const languages=['en','si','ta'],locales={en:'en-LK',si:'si-LK',ta:'ta-LK'};
 const areas=['Dambulla','Colombo','Kandy','Nuwara Eliya','Anuradhapura','Ampara','Badulla','Batticaloa','Galle','Gampaha','Hambantota','Jaffna','Kalutara','Kegalle','Kilinochchi','Kurunegala','Mannar','Matale','Matara','Monaragala','Mullaitivu','Polonnaruwa','Puttalam','Ratnapura','Trincomalee','Vavuniya'];
 const crops=['Tomatoes','Carrots','Potatoes','Cabbage','Bananas','Beans','Green Chilli','Onions'];
-const cropIcons={Tomatoes:'🍅',Carrots:'🥕',Potatoes:'🥔',Cabbage:'🥬',Bananas:'🍌',Beans:'🫛','Green Chilli':'🌶️',Onions:'🧅'};
+const cropIcons={Tomatoes:'🍅',Carrots:'🥕',Potatoes:'🥔',Cabbage:'🥬',Bananas:'🍌',Beans:'🌿','Green Chilli':'🌶️',Onions:'🧅'};
 const icons={home:'house',market:'store',messages:'messages-square',services:'handshake',profile:'user-round'};
 const icon=name=>`<i class="sp-icon" data-lucide="${name}" aria-hidden="true"></i>`;
 const paintIcons=()=>{if(typeof lucide!=='undefined')lucide.createIcons({attrs:{width:20,height:20,'stroke-width':1.8}});};
@@ -91,7 +91,8 @@ function header(){
 function nav(){return `<nav class="sp-bottom-nav" aria-label="${t('home')}">${['home','market','messages','services','profile'].map(page=>`<button type="button" class="cursor-interaction ${V.page===page?'active':''}" data-action="nav" data-page="${page}" ${V.page===page?'aria-current="page"':''}>${icon(icons[page])}${t(navKeys[page])}</button>`).join('')}</nav>`;}
 function demoBanner(){return `<div class="sp-preview-label"><span>${t(R.isPreview?'localPreview':'demoNotice')}</span>${V.me?.is_demo&&V.me.id<=10?`<select id="sp-demo-profile" aria-label="${t('changeProfile')}">${V.data.people.filter(p=>p.id<=10).map(p=>`<option value="${p.id}" ${p.id===V.me.id?'selected':''}>${e(p.name)}</option>`).join('')}</select>`:''}</div>`;}
 function steps(current){return `<div class="sp-step-indicator" aria-label="${t('createProfile')}">${['languageStep','roleStep','detailsStep'].map((key,index)=>`<div class="sp-step ${index===current?'current':''}" ${index===current?'aria-current="step"':''}><span>${index<current?'✓':index+1}</span>${t(key)}</div>`).join('')}</div>`;}
-function welcome(){return `<section class="sp-onboarding">${steps(0)}<div class="sp-sprout">${icon('languages')}</div><h1>${t('languageFirst')}</h1><p>${t('languageIntro')}</p><div class="sp-lang-options">${['si','ta','en'].map(code=>`<button type="button" class="cursor-interaction ${V.lang===code?'active':''}" data-action="language" data-language="${code}" aria-pressed="${V.lang===code}"><span><strong lang="${code}">${L[code]}</strong><small>${t(code==='si'?'casualSinhala':code==='ta'?'tamilHint':'englishHint',code)}</small></span><span class="sp-language-check" aria-hidden="true">${V.lang===code?icon('check'):''}</span></button>`).join('')}</div>${button('start-registration',t('nextStep')+' →','block')}<div class="sp-onboarding-footer"><button class="sp-help-link cursor-interaction" data-action="login">${t('alreadyMember')}</button>${R.config?.demoEnabled!==false?`<button class="sp-help-link cursor-interaction" data-action="demo">${t('exploreWithoutAccount')} →</button>`:''}</div></section>`;}
+function reviewAccess(){return R.config?.reviewOnly?`<aside class="sp-notice" style="margin-top:20px" aria-label="Evaluation accounts"><h2>Try SaviPola</h2><p>This evaluation prototype uses shared fictional accounts. No SMS is sent. Do not enter personal information.</p><div id="sp-sms-send"></div><div class="sp-hero-buttons"><button type="button" class="sp-button cursor-interaction" data-action="review-signin" data-role="farmer">Try as farmer</button><button type="button" class="sp-button outline cursor-interaction" data-action="review-signin" data-role="buyer">Try as buyer</button></div><p class="sp-field-hint">Example listings, orders and messages are shared with other reviewers.</p></aside>`:'';}
+function welcome(){return `<section class="sp-onboarding">${steps(0)}<div class="sp-sprout">${icon('languages')}</div><h1>${t('languageFirst')}</h1><p>${t('languageIntro')}</p><div class="sp-lang-options">${['si','ta','en'].map(code=>`<button type="button" class="cursor-interaction ${V.lang===code?'active':''}" data-action="language" data-language="${code}" aria-pressed="${V.lang===code}"><span><strong lang="${code}">${L[code]}</strong><small>${t(code==='si'?'casualSinhala':code==='ta'?'tamilHint':'englishHint',code)}</small></span><span class="sp-language-check" aria-hidden="true">${V.lang===code?icon('check'):''}</span></button>`).join('')}</div>${R.config?.reviewOnly?reviewAccess():button('start-registration',t('nextStep')+' →','block')}<div class="sp-onboarding-footer"><button class="sp-help-link cursor-interaction" data-action="login">${t('alreadyMember')}</button>${R.config?.demoEnabled!==false?`<button class="sp-help-link cursor-interaction" data-action="demo">${t('exploreWithoutAccount')} →</button>`:''}</div></section>`;}
 function roleScreen(){return `<section class="sp-registration">${steps(1)}<button class="sp-inline-back cursor-interaction" data-action="registration-language">${icon('chevron-left')}${t('back')}</button><h1>${t('chooseRole')}</h1><p>${t('roleHint')}</p><div class="sp-role-options">${Object.entries(ROLE_KEYS).map(([role,[title,hint,glyph]])=>`<button type="button" class="sp-role-choice cursor-interaction" data-action="choose-role" data-role="${role}"><span class="sp-category-icon" aria-hidden="true">${icon(glyph)}</span><span><strong>${t(title)}</strong><small>${t(hint)}</small></span><span>${icon('chevron-right')}</span></button>`).join('')}</div><p class="sp-field-hint">${t('savedDetails')}</p></section>`;}
 function auth(type){
  if(R.config?.authMode==='firebase')return phoneAuth(type);
@@ -99,6 +100,7 @@ function auth(type){
  return `<section class="sp-registration">${signup?steps(2):''}<button class="sp-inline-back cursor-interaction" data-action="${signup?'registration-role':'registration-language'}">${icon('chevron-left')}${t('back')}</button><div class="sp-auth-head"><h1>${t(signup?'simpleDetails':'signIn')}</h1><p>${t(signup?'fullNameHint':'signInNeeded')}</p></div>${signup?`<div class="sp-chosen-role"><span>${icon(ROLE_KEYS[reg.role][2])} ${t(ROLE_KEYS[reg.role][0])}</span><button class="sp-inline-link cursor-interaction" data-action="registration-role">${t('changeChoice')}</button></div>`:''}${R.isPreview?`<div class="sp-notice">${t('createdDemo')}</div>`:''}<form data-form="${type}" novalidate>${signup?field('fullName','name','text',reg.name)+areaField(reg.district):''}${!R.isPreview?field('phone','phone','tel',reg.phone)+`<p class="sp-field-hint" style="margin:-12px 0 20px">${t('phoneHint')}</p><div class="sp-field"><label for="sp-auth-password">${t('password')}</label><div class="sp-password-wrap"><input id="sp-auth-password" name="password" type="password" minlength="10" maxlength="128" autocomplete="${signup?'new-password':'current-password'}" value="${e(reg.password)}" required><button type="button" class="cursor-interaction" data-action="toggle-password" aria-controls="sp-auth-password" aria-pressed="false">${t('passwordShow')}</button></div><span class="sp-field-hint">${t('passwordHint')}</span></div>`:''}<div id="sp-form-error" class="sp-form-error" role="alert"></div><button type="submit" class="sp-button block cursor-interaction">${t(signup?'createProfile':'signIn')} →</button>${signup&&!R.isPreview?`<p class="sp-auth-note">${t('accountNote')}</p>`:''}</form></section>`;
 }
 function phoneAuth(type){
+ if(R.config?.reviewOnly)return `<section class="sp-registration">${button('registration-language',t('back'),'outline small')}${reviewAccess()}</section>`;
  const signup=type==='signup',pending=Boolean(window.SaviPolaPhone.confirmation),reg=V.registration;
  return `<section class="sp-registration">${signup?steps(2):''}<button class="sp-inline-back cursor-interaction" data-action="registration-language">${icon('chevron-left')}${t('back')}</button><h1>${t(signup?'simpleDetails':'signIn')}</h1><form data-form="${type}" novalidate>${pending?`<p class="sp-field-hint">${t('smsSent')}</p><div class="sp-field"><label for="sp-otp">${t('smsCode')}</label><input id="sp-otp" name="otp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></div>`:`${signup?field('fullName','name','text',reg.name)+areaField(reg.district):''}${field('phone','phone','tel',reg.phone)}<p class="sp-field-hint">${t('phoneHint')}</p><label class="sp-sms-consent"><input name="consent" type="checkbox" value="yes" required><span>${t('smsConsent')} <a href="/privacy" target="_blank" rel="noopener">${t('privacy')}</a></span></label><div id="sp-captcha"></div>`}<div id="sp-form-error" class="sp-form-error" role="alert"></div><button id="sp-sms-send" type="submit" class="sp-button block cursor-interaction">${t(pending?'verifyCode':'sendCode')} →</button>${pending?button('firebase-reset',t('smsRestart'),'outline block','style="margin-top:12px"'):''}</form></section>`;
 }
@@ -130,7 +132,8 @@ const PHRASES={
 function sampleMessage(sender,key,language){return {id:++demoCounter,sender_id:sender,text:PHRASES[key][language],source_language:language,created:Date.now()/1000,examples:PHRASES[key],sample:true};}
 function sampleThread(peer,pid){let c=demoThreads.find(x=>x.owner===V.me.id&&x.peer.id===peer.id&&x.product_id===pid);if(!c){c={id:-(demoThreads.length+1),owner:V.me.id,peer:structuredClone(peer),self:structuredClone(V.me),product_id:pid,sample:true};demoThreads.unshift(c);demoLogs.set(c.id,[sampleMessage(peer.id,'hello',peer.language||'si'),sampleMessage(V.me.id,'negotiate',V.me.language||V.lang),sampleMessage(peer.id,'reply',peer.language||'si')]);}return c;}
 async function loadThreads(){
- try{let liveThreads=[];if(!isDemo())liveThreads=(await R.request('/chat/conversations')).conversations;V.threads=[...liveThreads,...demoThreads.filter(c=>c.owner===V.me.id).map(c=>({...c,last_message:demoLogs.get(c.id).at(-1)}))];if(V.page==='messages')render();}catch(error){notify(errorText(error),true);}
+ const owner=V.me?.id;if(!owner)return;
+ try{let liveThreads=[];if(!isDemo())liveThreads=(await R.request('/chat/conversations')).conversations;if(V.me?.id!==owner)return;V.threads=[...liveThreads,...demoThreads.filter(c=>c.owner===owner).map(c=>({...c,last_message:demoLogs.get(c.id).at(-1)}))];if(V.page==='messages')render();}catch(error){if(V.me?.id===owner)notify(errorText(error),true);}
 }
 async function openPeer(uid,pid=null){
  const peer=person(uid);if(!peer||peer.id===V.me.id)return;
@@ -168,7 +171,7 @@ function render(){
  const authPage=['welcome','role','signup','login'].includes(V.page),chat=V.page==='chat'&&V.thread;
  const screens={home,market,profile,orders,inventory,services,jobs,demands,messages:threadList};
  const main=V.page==='welcome'?welcome():V.page==='role'?roleScreen():['signup','login'].includes(V.page)?auth(V.page):chat?chatScreen():`<main class="sp-content" ${V.sheet?'inert':''}>${(screens[V.page]||home)()}</main>`;
- root.innerHTML=header()+((!authPage&&isDemo())?demoBanner():'')+`<div id="sp-toast" role="status" aria-live="polite" hidden></div>`+(authPage?registrationLayout(main):main)+(!authPage&&!chat?nav():'')+(V.sheet?sheetMarkup():'');
+ root.innerHTML=header()+(R.config?.reviewOnly?'<aside class="sp-preview-label">Evaluation prototype · Shared fictional accounts and example data · Please do not enter personal information.</aside>':'')+((!authPage&&isDemo())?demoBanner():'')+`<div id="sp-toast" role="status" aria-live="polite" hidden></div>`+(authPage?registrationLayout(main):main)+(!authPage&&!chat?nav():'')+(V.sheet?sheetMarkup():'');
  root.querySelectorAll('.sp-header,.sp-desktop-nav,.sp-bottom-nav,.sp-preview-label').forEach(el=>el.inert=Boolean(V.sheet));
  paintToast();paintIcons();layout?.refresh();
  if(V.sheet)root.querySelector('.sp-sheet input,.sp-sheet select,.sp-sheet textarea,.sp-sheet button[data-action="close-sheet"]')?.focus({preventScroll:true});
@@ -288,6 +291,15 @@ root.addEventListener('click',async event=>{
  const target=event.target.closest('[data-action]');if(!target)return;
  const action=target.dataset.action,id=Number(target.dataset.id);
  try{
+  if(action==='review-signin'){
+   if(!R.config?.reviewOnly)return;
+   const label=target.textContent;target.disabled=true;target.textContent='Signing in…';
+   try{
+    const result=await window.SaviPolaPhone.review(target.dataset.role,V.lang);
+    V.me=result.user;V.lang=V.me.language;R.preference('language',V.lang);V.page='home';await refresh();
+   }finally{if(target.isConnected){target.disabled=false;target.textContent=label;}}
+   return;
+  }
   if(action==='save-harvest'){await toggleSaved(id);return;}
   if(action==='saved-retry'){await loadSaved();return;}
   if(action==='saved-filter'){savedOnly=!savedOnly;V.page='market';render();if(savedStatus==='error'||savedStatus==='idle')await loadSaved();return;}
@@ -313,7 +325,7 @@ root.addEventListener('click',async event=>{
   if(action==='close-sheet'){closeSheet();return;}
   if(action==='category'){V.category=target.dataset.value;render();return;}
   if(action==='service-tab'){V.service=target.dataset.value;render();return;}
-  if(action==='logout'){await R.request('/auth/logout','POST');savedIds.clear();savedOnly=false;savedStatus='idle';V.me=null;V.registration={name:'',role:'farmer',district:'Dambulla',phone:'',password:''};closeLive();V.page='welcome';render();return;}
+  if(action==='logout'){await R.request('/auth/logout','POST');closeLive();savedIds.clear();savedBusy.clear();savedOnly=false;savedStatus='idle';V.me=null;V.data=null;V.threads=[];V.thread=null;V.messages=[];V.chatView=null;V.openOriginal.clear();V.sheet=null;V.registration={name:'',role:'farmer',district:'Dambulla',phone:'',password:''};V.page='welcome';render();return;}
   if(action==='batch')return showSheet('batch',id);
   if(action==='offer'){if(!requireRole('buyer'))return;return showSheet('offer',id);}
   if(action==='listing'){if(!requireRole('farmer'))return;return showSheet('listing');}

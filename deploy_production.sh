@@ -2,6 +2,10 @@
 # Run in Google Cloud Shell. Creates billable HA SQL, Cloud Run and Scheduler resources.
 # Leaves the web service IAM-private. Follow PRODUCTION_DEPLOYMENT.md before public release.
 set -euo pipefail
+if [[ "${SAVIPOLA_APPROVE_PAID_HA:-}" != "yes" ]]; then
+  printf '%s\n' 'This older script provisions paid HA SQL outside the US$10 evaluation budget. Read EVALUATION_DEPLOYMENT.md. Set SAVIPOLA_APPROVE_PAID_HA=yes only after a separate cost review.' >&2
+  exit 1
+fi
 : "${SAVIPOLA_PROJECT:?Set your billing-enabled GCP project ID}"
 : "${FIREBASE_API_KEY:?Copy apiKey from your Firebase web app}"
 : "${FIREBASE_AUTH_DOMAIN:?Copy authDomain from your Firebase web app}"
