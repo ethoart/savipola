@@ -36,6 +36,10 @@ def run():
                 return result.json()['user'],token
             assert not a.get('/api/state').json()['people']
             assert a.get('/api/runtime-config').json()['demoEnabled'] is False
+            with patch.dict(os.environ,{'SAVIPOLA_ALLOWED_ORIGINS':'https://alternate.test'}):
+                alias=TestClient(app,base_url='https://alternate.test')
+                assert write(alias,'/api/auth/logout',{},origin='https://alternate.test').status_code==200
+                assert write(alias,'/api/auth/logout',{},origin='https://evil.invalid').status_code==403
             assert write(a,'/api/auth/login',{'phone':'0771110001','password':'anything'}).status_code==404
             alice,ta=join(a,'Alice','+94771110001','en','buyer')
             bob,tb=join(b,'Bob','+94771110002','si','farmer')

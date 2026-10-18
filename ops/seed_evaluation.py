@@ -7,23 +7,31 @@ import sys
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import settings
-if not settings.REVIEW_ONLY or settings.AUTH_MODE!='firebase':
+if not (settings.REVIEW_ONLY or settings.REVIEW_ACCESS) or settings.AUTH_MODE!='firebase':
     raise RuntimeError('This command is restricted to the evaluation build')
 from app import conn,one,NOW
+import reputation
 
 with conn() as db:
     ids={}
     for uid,name,role,phone,language in (
         ('savipola-review-farmer','Nimal (evaluation)','farmer','+16505550101','si'),
-        ('savipola-review-buyer','Green Basket (evaluation)','buyer','+16505550102','en')):
+        ('savipola-review-buyer','Green Basket (evaluation)','buyer','+16505550102','en'),
+        ('savipola-review-driver','Example transport provider','driver','+16505550103','en'),
+        ('savipola-review-worker','Example harvest helper','worker','+16505550104','en')):
         identity=one(db,'SELECT person_id FROM firebase_identities WHERE uid=?',(uid,))
         if identity:
-            ids[role]=identity['person_id'];continue
+            ids[role]=identity['person_id'];reputation.record_identity(db,identity['person_id'],{'uid':uid,'email':settings.REVIEW_IDENTITIES[uid],'email_verified':False});continue
+        existing=one(db,'SELECT id FROM people WHERE name=? AND role=?',(name,role))
+        if existing:
+            pid=existing['id'];db.execute('INSERT INTO firebase_identities(uid,person_id) VALUES(?,?)',(uid,pid))
+            reputation.record_identity(db,pid,{'uid':uid,'email':settings.REVIEW_IDENTITIES[uid],'email_verified':False});ids[role]=pid;continue
         if one(db,'SELECT id FROM people WHERE phone=?',(phone,)):
             raise RuntimeError('Existing evaluation phone needs identity review; no data changed')
         pid=db.execute('INSERT INTO people(name,role,district,phone,avatar) VALUES(?,?,?,?,?)',(name,role,'Dambulla',phone,name[0])).lastrowid
         db.execute('INSERT INTO profiles(person_id,language,bio,is_demo) VALUES(?,?,?,0)',(pid,language,'Shared fictional evaluation account.'))
         db.execute('INSERT INTO firebase_identities(uid,person_id) VALUES(?,?)',(uid,pid))
+        reputation.record_identity(db,pid,{'uid':uid,'email':settings.REVIEW_IDENTITIES[uid],'email_verified':False})
         ids[role]=pid
     if not one(db,'SELECT id FROM products WHERE seller_id=?',(ids['farmer'],)):
         for crop,qty,price in (('Tomatoes',300,245),('Green Chilli',120,520),('Beans',160,380),('Bananas',180,210)):

@@ -16,7 +16,7 @@ Implemented 18 October 2026 for English, Sinhala and Tamil. This is a validation
 - Layout-controller checks with mocked geometry: changing navigation height, a shortened keyboard viewport, a very short viewport, pinch zoom, 200% root text size, responsive breakpoints and observer cleanup.
 - Static routes, script order, every cached asset, twelve font-file headers and licences, JavaScript syntax, and stylesheet block balance.
 
-**Not completed here:** real browser geometry, screenshots, actual mobile keyboards, font shaping on real browsers, touch-device interactions, native-speaker copy review or usability sessions. This environment has no supported browser QA surface. Mocked geometry does not prove that text fits visually.
+**Remaining:** physical mobile keyboards, real iPhone/WebKit rendering, touch-device interactions, native-speaker copy review and usability sessions. Desktop browser screenshots and DOM checks were performed on the deployed app. Mocked geometry does not prove that text fits visually.
 
 ## Run the real browser check
 
@@ -36,3 +36,7 @@ The checker uses the real app and waits for the selected script font. It only us
 | Screens | Language, role, signup, login, home, market, profile, orders, inventory, transport, workers, jobs, demands, messages, chat, offer form and help |
 
 The checker flags page overflow, out-of-viewport text/controls, clipped containers and controls below 44 pixels high. A geometry pass does not establish good language, user comprehension, visual appeal, or support for every browser. Native select/input fields can scroll their values normally; these are not treated as clipped text.
+
+## iPhone color correction
+
+A reported black-background/white-text failure exposed reliance on light-dark() without compatibility fallbacks. Production styles now use normal color values with prefers-color-scheme dark overrides, vh fallbacks for dynamic viewport sizing, and versioned stylesheet URLs. This removes the unsupported color-function dependency; the team confirmed correct display after reopening the updated site in iPhone Chrome. Broader iOS/browser testing remains.

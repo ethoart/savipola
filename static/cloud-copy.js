@@ -1,5 +1,14 @@
 /* Public-phone sign-in copy: English, everyday Sinhala, Tamil. */
 Object.assign(window.SaviPolaCopy,{
+ connected:['Connected · updates every 5 seconds','සම්බන්ධයි · තත්පර 5කට වරක් යාවත්කාලීනයි','இணைக்கப்பட்டது · 5 வினாடிகளுக்கு ஒருமுறை புதுப்பிக்கப்படும்'],
+ ownListing:['This is your listing. Manage it from My harvest.','මේ ඔබේ අස්වැන්නයි. මගේ අස්වැන්න තුළින් වෙනස් කරන්න.','இது உங்கள் விளம்பரம். எனது அறுவடையில் நிர்வகிக்கவும்.'],
+ myDeliveries:['Transport bookings','වාහන වෙන් කිරීම්','போக்குவரத்து முன்பதிவுகள்'],
+ noAcceptedOrders:['Accept a produce offer first. Then its buyer can book transport from My orders & offers.','මුලින් අස්වැන්නට දාපු offer එක පිළිගන්න. පසුව ගැනුම්කරුට මගේ ගනුදෙනු තුළින් වාහනයක් වෙන් කරන්න පුළුවන්.','முதலில் விளைபொருள் முன்மொழிவை ஏற்கவும். அதன் பிறகு வாங்குபவர் தனது ஆர்டரில் போக்குவரத்தை முன்பதிவு செய்யலாம்.'],
+ yourService:['Your service listing','ඔබේ සේවා දැන්වීම','உங்கள் சேவை விளம்பரம்'],
+ contactBuyer:['Contact buyer','ගැනුම්කරුට කතා කරන්න','வாங்குபவரைத் தொடர்புகொள்ளவும்'],
+ delivered:['Mark delivered','Delivery එක අවසන් කළා','வழங்கப்பட்டது எனக் குறிக்கவும்'],
+ Delivered:['Delivered','ලබා දුන්නා','வழங்கப்பட்டது'],
+ retryLoad:['Could not load SaviPola. Check your connection, then retry.','SaviPola දැන් බලන්න බැහැ. Internet connection එක බලලා නැවත උත්සාහ කරන්න.','SaviPola ஏற்றப்படவில்லை. இணைய இணைப்பைச் சரிபார்த்து மீண்டும் முயலவும்.'],
  savedHarvests:['Saved harvests','Save කරපු අස්වැන්න','சேமித்த அறுவடைகள்'],
  saveHarvest:['Save harvest','අස්වැන්න Save කරන්න','அறுவடையைச் சேமிக்கவும்'],
  removeSavedHarvest:['Remove saved harvest','Save කරපු එක ඉවත් කරන්න','சேமித்த அறுவடையை நீக்கவும்'],

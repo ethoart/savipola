@@ -18,7 +18,7 @@ window.SaviPolaRuntime={
     return result;
   },
   live(cid,update,status){
-    if(this.config.pollOnly){status('syncing');return ()=>{};}
+    if(this.config.pollOnly){status('connected');return ()=>{};}
     let socket=null,stopped=false,reconnect=null,ping=null;
     const connect=()=>{
       if(stopped)return;

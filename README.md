@@ -1,72 +1,44 @@
-# SaviPola - connect the harvest to the whole community
+# SaviPola — connect the harvest to the whole community
 
-Working prototype for **Google Cloud AI Builder Cup 2026**, recommended theme: **Sustainability & Social Impact**. Farmers, buyers, drivers and local workers coordinate a harvest sale in one workflow.
+Working evaluation prototype for Google Cloud AI Builder Cup 2026, Sustainability & Social Impact.
 
-## Hyper Way submission package
+**Public app:** https://savipola-2cpvvetnwq-uc.a.run.app
 
-**Public prototype:** https://savipola-2cpvvetnwq-uc.a.run.app
+**Hyper Way:** leader Sathini Dewmanthi Jayamaha; member Sandun Nayanaka Subasingha.
 
-**Team leader:** Sathini Dewmanthi Jayamaha. **Team member:** Sandun Nayanaka Subasingha.
+## Try the application
 
-Choose **Try as farmer** or **Try as buyer** on the welcome page. These are shared fictional evaluation accounts using actual Firebase email/password authentication. All SMS regions remain blocked and phone sign-in is disabled. Use separate browser profiles or a normal and private window to keep farmer and buyer sessions separate. Do not enter personal information.
+Create an account as a farmer/seller, buyer, driver or worker. Open Firebase's verification email, verify, then sign in. Password reset and logout are available. All SMS regions remain blocked; the deployment uses email, not phone authentication.
 
-Start with [EVALUATION_DEPLOYMENT.md](EVALUATION_DEPLOYMENT.md) for the actual cloud configuration, published evaluation credentials, budget and expiry. [CLOUD_VALIDATION.md](CLOUD_VALIDATION.md) records the successful live checks. The older paid HA deployment script is outside the approved US$10 monthly target and requires an explicit cost-review flag before it runs.
+For a quick demonstration, select Try as farmer, buyer, driver or worker on the welcome page. These four native Firebase accounts contain shared fictional data. Use separate browser profiles or a normal and private window for simultaneous accounts. Ordinary tabs share cookies. Never put personal information in a shared account. Credentials and deployment details are in [EVALUATION_DEPLOYMENT.md](EVALUATION_DEPLOYMENT.md).
 
-Cloud Run hosts the app; Firebase supplies verified identities; Firestore persists private saved-harvest references; Cloud SQL stores the trade ledger and messages; Gemini through Vertex AI translates fresh chat messages. The source defaults to local mode and leaves evaluation access disabled unless explicitly configured.
+## Working features
 
-The evaluation database will be **permanently deleted on 10 January 2027 at 00:00 UTC**, as authorized by the team, before its three-month Firebase SQL Connect trial becomes paid. The app will then stop working until another database is connected. Other services are metered; this is not a provider-enforced US$10 cap.
+- Sinhala, Tamil and English interface, language-first registration, crop aliases and responsive cards. The team confirmed the iPhone color fix on its own phone on 18 October 2026.
+- Farmer listings, stock/restock and explicitly self-reported quality checks; buyer search, demands, stock-aware sourcing proposals and private saved harvests.
+- Private conversations with Gemini translation and reply drafting. Original messages remain available. Translation is assistance and may be wrong.
+- Structured offers, seller acceptance and consistent inventory reservation/completion. Driver service listings, linked transport records and delivery completion. Worker listings, hiring records, completion and ratings. No payment or actual dispatch occurs.
+- Mutual buyer/seller reviews after a completed trade, with one review per party. Trust scores expose their components; demo activity does not raise a real account's score.
+- Private, consented buyer/seller KYC: Gemini checks readability, name consistency and anomalies. AI checks passed is distinct from identity verified. Only an authorized human reviewer can approve identity. Self-approval and shared-account document uploads are blocked. Images are removed after a decision or 30 days.
 
-This is an evaluation prototype. Real-user onboarding, load/recovery testing, moderation and operational monitoring remain future work. The older brief under `docs/` is historical supporting material; use the prescribed 16-slide challenge deck for submission.
+## Actual Google Cloud integration
+
+Firebase Authentication supplies verified-email identities. Cloud Run hosts the interface and FastAPI APIs. Cloud Firestore persists each account's private saved-harvest references. Cloud SQL PostgreSQL stores profiles, inventory, orders, messages and private review records. Gemini through Vertex AI performs translation, drafting and document consistency checks. Runtime credentials stay on the server; no service-account key or database password is published.
+
+[CLOUD_VALIDATION.md](CLOUD_VALIDATION.md) records fourteen live workflow checks, the separate real-model fictional-document check, nine backend suites and their limits. [RESPONSIVE_VALIDATION.md](RESPONSIVE_VALIDATION.md) distinguishes browser checks from physical-device evidence.
 
 ## Run locally
 
-**Windows:** extract the ZIP first, open the `savipola_prototype` folder, and double-click **START_SAVIPOLA.bat**. Python 3.12 is recommended. The first launch installs dependencies, then opens the app in your browser. Keep the command window open while using the app; press Ctrl+C to stop it.
+Extract the source. On Windows, open the project folder and run START_SAVIPOLA.bat. On macOS/Linux, run `python3 launch_local.py`. Python 3.12 is recommended. The launcher installs dependencies and opens a free local port starting at 8000. Keep its process open while using the app.
 
-**macOS / Linux:** from the extracted project folder run `python3 launch_local.py`. The launcher uses a local SQLite database and chooses a free port starting at 8000. It does not require Google Cloud credentials for the marketplace, stock, transport and worker demonstration. Vertex AI features still require the setup in GOOGLE_CLOUD_SETUP.md.
-
-For a manual start:
+Manual start:
 
 ```bash
 python -m pip install -r requirements.txt
 python app.py
 ```
 
-Open http://127.0.0.1:8000. SQLite preserves local changes. Sample profiles, prices, vehicles and histories are fictional. Manual marketplace functions work without Google credentials.
-
-## What changed
-
-- **Persistent saved harvests:** verified Firebase accounts can save/remove a harvest and reload their private shortlist across devices. The backend writes real Cloud Firestore documents using ADC. Original stock and prices stay in SQL. Firestore is off in the default local demo and requires configured cloud credentials in Firebase mode. A live buyer save/read and farmer-account isolation check passed on 18 October 2026.
-
-- **Multilingual reflow:** locally bundled Sinhala/Tamil/Latin fonts, natural script spacing, taller line heights and responsive controls. Narrow screens use fewer columns; header and navigation adapt to available space and larger text. Chat and popups respond to viewport height. See `RESPONSIVE_VALIDATION.md` for actual verification limits and the included `/responsive-check` browser checker.
-- **Visual refinement:** a consistent outlined icon set, calmer colours, aligned product cards and buttons, one marketplace search field, shorter mobile navigation and a two-column desktop registration introduction. Popups keep keyboard focus inside them, close on Escape and restore focus to the opening control. Reduced-motion preferences disable decorative movement. Lucide 0.468.0 is bundled locally with its licence; no external icon request is needed during app use.
-- **Clear marketplace redesign:** responsive photo-led cards, prominent search, separate buy/sell/work/delivery actions, optional area and price/stock sorting, and short how-to guidance. Layout draws on familiar marketplace patterns; it does not connect to or copy listings from eBay, OpenSea or AliExpress.
-- **Language-first registration:** language → main activity → personal details. Draft details remain when moving back; password visibility is optional and passwords stay only in form memory until submission. Password drafts clear after a successful sign-in/signup or logout.
-- **Everyday Sinhala:** familiar Sinhala–English wording replaces formal technical labels. Search recognises a curated set of English, Sinhala, Tamil and Singlish crop names, for example `tomato`, `තක්කාලි`, `thakkali` and `தக்காளி`. This is an alias lookup, not unrestricted natural-language understanding. Vertex translation/assistant prompts now explicitly accommodate code-switched messages; actual translation quality still needs testing.
-- **Illustrative photos:** included photographs are labelled examples, not images of the seller's actual harvest. Photo sources are recorded in `static/photos/SOURCES.md` and are served locally. This update does not add listing-photo uploads.
-- **Mobile interface:** touch-friendly screens, bottom navigation, standalone web-app manifest and English, Sinhala and Tamil interface strings. This is an installable web app, not an Android/iOS binary. Installation availability depends on your browser and HTTPS; localhost works for development.
-- **Profiles:** create a farmer, buyer, worker or driver account using a Sri Lankan mobile number and password. Set your district, preferred language, bio and skills. Passwords use scrypt; sessions use HttpOnly cookies. Local demo phone numbers are not SMS-verified; Firebase mode replaces passwords with verified SMS sign-in. Public profiles omit phone numbers.
-- **Private P2P chat:** registered people can message each other. Messages are saved and checked against conversation membership. A WebSocket delivers updates on the same process; a three-second poll recovers missed messages across instances and reconnects.
-- **Two-language conversations:** each person writes in their chosen language. Gemini on Vertex AI translates incoming messages to the recipient's profile language. Original text remains available; translation errors retain it and offer retry. AI can draft a reply for review before sending. Translation is text-based, not voice interpretation.
-- **Clearly marked sample chat:** demo profiles use prepared Sinhala/Tamil/English examples. Arbitrary sample messages keep their original text if no prepared translation exists. Demo profiles never impersonate a registered account or receive private messages.
-- **Harvest AI:** Gemini on Vertex AI turns Sinhala, Tamil or English messages into structured listing drafts. Missing information stays empty; the farmer reviews before publishing.
-- **Photo review:** Vertex AI describes visible cosmetic condition and uncertainty. It does not change the seller's grade or certify food safety.
-- **Sourcing explanation:** code computes stock-aware quantities and goods totals; Gemini explains next steps. The allocation respects the buyer's per-kg cap. It is a heuristic, not a guaranteed cost optimum.
-- **Cloud deployment:** Dockerfile, Cloud Run deployment script, Cloud SQL PostgreSQL backend and Secret Manager password injection.
-- **Audit:** successful AI calls record operation, model, latency and time. Failed or unconfigured calls never return fake AI results.
-
-See **GOOGLE_CLOUD_SETUP.md** to configure your project. The deployed evaluation configuration and real Gemini translation evidence are documented in CLOUD_VALIDATION.md.
-
-## Local demo / judge walkthrough
-
-1. The first screen asks for Sinhala, Tamil or English. Choose **Continue**, then your main activity and your details to create an account. **Just have a look first** opens sample data. On mobile, bottom navigation opens Market, Messages, Services and Profile; desktop uses the top navigation.
-2. Home → **Speak in your language** opens a labelled sample conversation. Use **Preview as** to see both participants' language views. Toggle **Show original**, then send a prepared question.
-3. Profile → **Create your profile** starts the same language-first registration flow. Open a second browser profile or incognito window and register another person in a different language. These are separate accounts, not the demo profile selector. Try mixed-language crop search and optional filters before starting a trade.
-4. Messages → **New chat** → choose the other registered person. With Vertex configured, send an English/Sinhala/Tamil message and check the recipient's translation and original. Without credentials, the original arrives and translation is marked unavailable.
-5. In sample mode, Market → View harvest → offer 40 kg at Rs. 240/kg. Switch to its sample farmer and accept in Profile → My orders & offers. Inventory moves from available to reserved.
-6. The buyer can book transport after acceptance; Services supports worker booking and subsequent completion/review. Fulfil the trade to move reserved stock to sold.
-7. The previous advanced desktop tools remain at **http://127.0.0.1:8000/classic**: Harvest AI listing drafts, photo review, and AI sourcing explanations. Sign out of any real account first, then use sample profiles there for the judge demo. The new marketplace uses the same backend.
-
-Multi-farm sourcing is a proposal; each farmer must separately accept an offer. No grouped checkout or pooled freight routing is implemented. Sinhala/Tamil interface copy and model output still require review by native speakers. No speech recognition is implemented.
+Local sample mode uses SQLite and fictional profiles; its phone/password registration is not SMS verification. Cloud features require the configuration in GOOGLE_CLOUD_SETUP.md. Verified-email onboarding and private KYC require Firebase mode. Evaluation access defaults off in source.
 
 ## Verify
 
@@ -80,20 +52,17 @@ python test_firebase_identity.py
 python test_production_config.py
 python test_saved_harvests.py
 python test_review_access.py
+python test_identity_reputation.py
 ```
 
-AI boundary tests use explicitly identified test fixtures; these are not live Gemini evidence. See VALIDATION.md and CLOUD_VALIDATION.md for results and limits.
+Network boundaries in local tests are mocked. Successful live cloud checks are separately documented.
 
-## Submission material
+## Submission and operating limits
 
-`solution_brief.md` maps product decisions to the rubric and proposes pilot evidence. `pitch.md` gives the core story. `submission/demo_plan.md` contains the primary 3–4 minute walkthrough required by the signed-in submission portal. The included PDF brief is supporting material, not a slide deck.
+Use the prescribed 16-slide challenge pitch PDF, public app/repository URLs, a working 3–4 minute video and the short technology description. SUBMISSION_HANDOFF.md identifies the template. Historical material under docs/ is supporting material, not the prescribed pitch deck. The recorded video remains a team deliverable until its URL is added.
 
-Submit a working Google Cloud URL, public source repository, a 3–4 minute video and a PDF deck under 5 MB using the prescribed template. The signed-in portal deadline is October 18, 2026 at 11:59 PM IST. The rules require a 2-4 person JAPAC team aged 21+ and exclude students.
+The approved target is US$10/month for small evaluation traffic, not a provider-enforced cap. Hosting scales to zero with one maximum instance. AI requests are limited to 20 per account and 40 globally per day. Phone authentication is disabled. The authorized evaluation SQL database is permanently deleted on 10 January 2027 at 00:00 UTC (05:30 Sri Lanka), before trial billing. This stops the app until a replacement database is connected. Other project resources are outside that deletion job. The historical paid HA deployment script is outside the approved budget and has an explicit cost-review guard.
 
-## Boundaries
+This is a working evaluation prototype, not production-readiness certification. No real payments, live routing, government identity API, document-authenticity guarantee, liveness checks, field pilot or measured income improvements are claimed. Broader moderation, operational monitoring, account-deletion workflows, backup/recovery and load testing remain. AI inputs are sent to Google Cloud with the displayed notices and consent. Private API responses are never cached by the service worker.
 
-No live HARTI feed, verified fair-price algorithm, real payments, government identity checks, live routing, driver confirmations or independently verified worker credentials are present. Grades are self-reported. The profile switcher selects sample people only; registered accounts sign in separately. Keep public judging to sample data. Set `SAVIPOLA_DEMO_MODE=0` to disable anonymous mutations through sample actors before a real-user pilot.
-
-Messages submitted for translation and AI assistance, and selected photos, are sent to Google Cloud for AI processing. Chat messages and translations persist in the configured database; images are not saved. Audit events exclude raw prompts and photos. Numeric tokens are checked against accidental changes in translations, but meaning and trade accuracy still need human review. Translations are not guaranteed correct.
-
-Local demo mode uses password sessions and process-local limits. Firebase mode adds verified-phone sessions and SQL-backed limits. Moderation, account recovery/deletion workflows, complete migration management and live operational validation remain release blockers; see PRODUCTION_DEPLOYMENT.md. WebSocket notification state is process-local, with polling fallback; a shared message bus is a future improvement. The service worker caches static application files only; it does not cache private API responses or support offline transactions. Live Vertex, Cloud SQL and mobile browser rendering have not been verified in this environment. Maps Routes, consented Cloud Storage evidence and BigQuery analytics remain roadmap items.
+Support and privacy requests: **mail@hyperway.site**.

@@ -27,9 +27,11 @@ def exchange(token):
     claims = checked(auth.verify_id_token, token, check_revoked=True)
     age = time.time() - claims.get('auth_time', 0)
     provider = claims.get('firebase', {}).get('sign_in_provider')
-    if settings.REVIEW_ONLY:
+    if settings.REVIEW_ONLY or settings.EMAIL_AUTH:
         expected = settings.REVIEW_IDENTITIES.get(claims.get('uid'))
-        allowed = provider == 'password' and expected is not None and claims.get('email') == expected
+        reviewer = (settings.REVIEW_ONLY or settings.REVIEW_ACCESS) and expected is not None and claims.get('email') == expected
+        verified_email = settings.EMAIL_AUTH and not settings.REVIEW_ONLY and claims.get('email_verified') is True and bool(claims.get('email'))
+        allowed = provider == 'password' and (reviewer or verified_email)
     else:
         allowed = provider == 'phone' and bool(claims.get('phone_number'))
     if not -30 <= age <= 300 or not allowed:

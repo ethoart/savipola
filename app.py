@@ -7,7 +7,7 @@ from security import SecurityBoundary
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 
 ROOT=os.path.dirname(os.path.abspath(__file__))
@@ -91,31 +91,34 @@ with conn() as db:
 
   if hasattr(db,'sync_sequences'):db.sync_sequences()
 
-class ProductIn(BaseModel):
+class RequestModel(BaseModel):
+ model_config=ConfigDict(allow_inf_nan=False,str_strip_whitespace=True)
+
+class ProductIn(RequestModel):
  seller_id:int; crop:str=Field(min_length=2,max_length=70); district:str=Field(min_length=2,max_length=80); qty:float=Field(gt=0,le=100000); price:float=Field(gt=0,le=100000); harvested:Optional[str]=None
-class RestockIn(BaseModel):
+class RestockIn(RequestModel):
  actor_id:int;qty:float=Field(gt=0,le=100000)
-class QualityIn(BaseModel):
+class QualityIn(RequestModel):
  actor_id:int;product_id:int; freshness:int=Field(ge=1,le=5);defects:int=Field(ge=0,le=5);handling:int=Field(ge=1,le=5);note:str=''
-class OfferIn(BaseModel):
+class OfferIn(RequestModel):
  buyer_id:int;product_id:int;qty:float=Field(gt=0);price:float=Field(gt=0)
-class OfferAction(BaseModel):
+class OfferAction(RequestModel):
  actor_id:int;action:str
-class DemandIn(BaseModel):
+class DemandIn(RequestModel):
  buyer_id:int;crop:str=Field(min_length=2);qty:float=Field(gt=0);max_price:float=Field(gt=0);district:str
-class DeliveryIn(BaseModel):
+class DeliveryIn(RequestModel):
  actor_id:int;offer_id:int;driver_id:int;distance_km:float=Field(gt=0,le=1000)
-class JobIn(BaseModel):
+class JobIn(RequestModel):
  actor_id:int;worker_id:int;description:str=Field(min_length=6,max_length=300)
-class JobAction(BaseModel):
+class JobAction(RequestModel):
  actor_id:int
-class WorkerIn(BaseModel):
+class WorkerIn(RequestModel):
  actor_id:int;skill:str=Field(min_length=3,max_length=90);district:str=Field(min_length=2,max_length=80);rate:float=Field(gt=0,le=100000);bio:str=Field(min_length=10,max_length=500)
-class DriverIn(BaseModel):
+class DriverIn(RequestModel):
  actor_id:int;vehicle:str=Field(min_length=3,max_length=80);capacity:float=Field(gt=0,le=200000);district:str=Field(min_length=2,max_length=80);base_fee:float=Field(ge=0,le=100000);per_km:float=Field(ge=0,le=10000)
-class VisionIn(BaseModel):
+class VisionIn(RequestModel):
  actor_id:int;product_id:int;image_data:str=Field(min_length=100,max_length=3000000)
-class ReviewIn(BaseModel):
+class ReviewIn(RequestModel):
  actor_id:int;rating:int=Field(ge=1,le=5);review:str=Field(min_length=3,max_length=300)
 
 @app.get('/')
@@ -140,7 +143,7 @@ def state():
    'offers':rows(db,'SELECT o.*,b.name buyer_name,p.crop,p.seller_id,s.name seller_name FROM offers o JOIN people b ON b.id=o.buyer_id JOIN products p ON p.id=o.product_id JOIN people s ON s.id=p.seller_id ORDER BY o.id DESC'),
    'demands':rows(db,'SELECT d.*,p.name buyer_name FROM demands d JOIN people p ON p.id=d.buyer_id ORDER BY d.id DESC'),
    'drivers':rows(db,'SELECT d.*,p.name name,p.phone FROM drivers d JOIN people p ON p.id=d.person_id ORDER BY d.id'),
-   'deliveries':rows(db,'SELECT d.*,p.crop,dr.vehicle,per.name driver_name,b.name buyer_name FROM deliveries d JOIN offers o ON o.id=d.offer_id JOIN products p ON p.id=o.product_id JOIN drivers dr ON dr.id=d.driver_id JOIN people per ON per.id=dr.person_id JOIN people b ON b.id=o.buyer_id ORDER BY d.id DESC'),
+   'deliveries':rows(db,'SELECT d.*,p.crop,p.seller_id,o.buyer_id,o.qty,dr.person_id AS driver_person_id,dr.vehicle,per.name driver_name,b.name buyer_name FROM deliveries d JOIN offers o ON o.id=d.offer_id JOIN products p ON p.id=o.product_id JOIN drivers dr ON dr.id=d.driver_id JOIN people per ON per.id=dr.person_id JOIN people b ON b.id=o.buyer_id ORDER BY d.id DESC'),
    'workers':rows(db,'SELECT w.*,p.name name,p.phone FROM workers w JOIN people p ON p.id=w.person_id ORDER BY w.id'),
    'jobs':rows(db,'SELECT j.*,p.name worker_name,b.name buyer_name,w.skill FROM jobs j JOIN workers w ON w.id=j.worker_id JOIN people p ON p.id=w.person_id JOIN people b ON b.id=j.buyer_id ORDER BY j.id DESC'),
    'quality_events':rows(db,'SELECT * FROM quality_events ORDER BY id DESC LIMIT 10'),
@@ -269,6 +272,16 @@ def book_job(v:JobIn):
   c=db.execute('INSERT INTO jobs(buyer_id,worker_id,description,status,price,created) VALUES(?,?,?,?,?,?)',(v.actor_id,v.worker_id,v.description,'Booked',w['rate'],NOW))
   return {'ok':True,'id':c.lastrowid}
 
+@app.post('/api/deliveries/{did}/complete')
+def complete_delivery(did:int,v:JobAction):
+ with conn() as db:
+  delivery=one(db,'SELECT d.status,dr.person_id,o.buyer_id FROM deliveries d JOIN drivers dr ON dr.id=d.driver_id JOIN offers o ON o.id=d.offer_id WHERE d.id=?',(did,))
+  if not delivery:fail(404,'Transport booking not found')
+  if v.actor_id not in (delivery['person_id'],delivery['buyer_id']):fail(403,'Only the booked driver or buyer can mark this delivery complete')
+  changed=db.execute("UPDATE deliveries SET status='Delivered' WHERE id=? AND status='Booked'",(did,))
+  if changed.rowcount!=1:fail(409,'Delivery is already complete')
+  return {'ok':True}
+
 @app.post('/api/jobs/{jid}/complete')
 def complete_job(jid:int,v:JobAction):
  with conn() as db:
@@ -334,7 +347,7 @@ def run_ai(operation, instruction, content, schema, image=None):
   db.execute('INSERT INTO ai_events(operation,model,latency_ms,created) VALUES(?,?,?,?)',(operation,meta['model'],meta['latency_ms'],datetime.datetime.now(datetime.timezone.utc).isoformat()))
  return {'result':result,'ai':meta}
 
-class DraftIn(BaseModel):
+class DraftIn(RequestModel):
  actor_id:int
  message:str=Field(min_length=5,max_length=3000)
  language:str='English'
@@ -349,7 +362,7 @@ def listing_draft(v:DraftIn):
   'Do not assume a market price or promise a buyer. This only prepares a draft; the farmer must confirm before posting.',
   json.dumps({'farmer_message':v.message,'output_language':'English'}),ai_service.ListingDraft)
 
-class ExplainIn(BaseModel):
+class ExplainIn(RequestModel):
  actor_id:int
  language:str='English'
 
@@ -402,9 +415,12 @@ def privacy():
  support=escape(os.getenv('SAVIPOLA_SUPPORT_EMAIL','Contact the app operator before using real personal information.'))
  return '''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SaviPola privacy</title><link rel="stylesheet" href="/static/fonts/fonts.css"><link rel="stylesheet" href="/static/privacy.css"></head><body><main>
  <a href="/">← SaviPola</a><h1>Privacy · පෞද්ගලිකත්වය · தனியுரிமை</h1>
- <section lang="en"><h2>Your information</h2><p>Your name, area, role, profile description and listings are visible to other people. Your phone number is used for sign-in and is not shown in the public directory. Messages and offers are visible to their participants and may be accessed by authorized service operators for support. Saved harvest references and their timestamps are stored privately in Cloud Firestore. This service does not provide end-to-end encrypted messaging.</p><p>Google Firebase processes your phone number and verification information for authentication and abuse prevention. If you send a message in another language or request AI help, its content and relevant listing details are sent to Google's Vertex AI for processing. Translation can be wrong: confirm prices, amounts and arrangements with the other person. Do not put bank details, passwords or sensitive information in messages.</p><p>Contact the operator below for access, correction or deletion requests, retention details, or to report abuse. Deletion is currently handled by the operator, not an in-app button. Ask about retention and backup handling before using the service.</p></section>
+ <section lang="en"><h2>Your information</h2><p>Your name, area, role, profile description and listings are visible to other people. Your phone number is used for sign-in and is not shown in the public directory. Messages and offers are visible to their participants and may be accessed by authorized service operators for support. Saved harvest references and their timestamps are stored privately in Cloud Firestore. This service does not provide end-to-end encrypted messaging.</p><p>Google Firebase processes your email address or phone number and verification information for authentication and abuse prevention. If you send a message in another language or request AI help, its content and relevant listing details are sent to Google's Vertex AI for processing. Translation can be wrong: confirm prices, amounts and arrangements with the other person. Do not put bank details, passwords or sensitive information in messages.</p><p>Contact the operator below for access, correction or deletion requests, retention details, or to report abuse. Deletion is currently handled by the operator, not an in-app button. Ask about retention and backup handling before using the service.</p></section>
  <section lang="si"><h2>ඔබේ තොරතුරු</h2><p>ඔබේ නම, ප්‍රදේශය, කරන වැඩේ, profile විස්තර සහ listings අනිත් අයට පේනවා. Phone number එක sign in කරන්න යොදාගන්නවා; පොදු නාමාවලියේ පෙන්වන්නේ නැහැ. Messages සහ offers ඒවාට සම්බන්ධ අයටත්, සහාය දෙන බලයලත් සේවා කණ්ඩායමටත් බලන්න පුළුවන්. Save කරපු අස්වනු විස්තර Cloud Firestore තුළ පෞද්ගලිකව තබාගනී. Messages සඳහා end-to-end encryption නැහැ.</p><p>Sign in කිරීම සහ අයථා භාවිතය වැළැක්වීමට phone number එක Google Firebase වෙත යවයි. වෙනත් භාෂාවක message එකක් යවන විට හෝ AI උදව් ඉල්ලන විට අදාළ විස්තර Google Vertex AI වෙත යවයි. පරිවර්තන වැරදි වෙන්න පුළුවන්. මිල, ප්‍රමාණ සහ එකඟතා අනිත් කෙනා සමඟ තහවුරු කරගන්න. Bank විස්තර, passwords හෝ සංවේදී තොරතුරු messages වල දාන්න එපා.</p><p>ඔබේ තොරතුරු බැලීමට, නිවැරදි කිරීමට, ඉවත් කිරීමට හෝ පැමිණිලි කිරීමට පහත සහාය අමතන්න. දැනට තොරතුරු ඉවත් කරන්නේ සේවා කණ්ඩායමයි. දත්ත තබාගන්නා කාලය සහ backups ගැන භාවිතයට පෙර අහන්න.</p></section>
  <section lang="ta"><h2>உங்கள் தகவல்கள்</h2><p>உங்கள் பெயர், பகுதி, பணி, சுயவிவரம் மற்றும் விளம்பரங்கள் மற்றவர்களுக்குத் தெரியும். உள்நுழைவதற்குப் பயன்படுத்தும் தொலைபேசி எண் பொதுப் பட்டியலில் காட்டப்படாது. செய்திகள் மற்றும் விலை முன்மொழிவுகளை அவற்றில் பங்கேற்பவர்களும் அங்கீகரிக்கப்பட்ட உதவிக் குழுவினரும் பார்க்கலாம். சேமித்த அறுவடைக் குறிப்புகள் Cloud Firestore இல் தனிப்பட்ட முறையில் சேமிக்கப்படும். இந்தச் சேவையில் end-to-end மறைகுறியாக்கம் இல்லை.</p><p>அடையாளச் சரிபார்ப்புக்கும் தவறான பயன்பாட்டைத் தடுக்கவும் Google Firebase உங்கள் தொலைபேசி எண்ணைச் செயலாக்குகிறது. வேறு மொழியில் செய்தி அனுப்பும்போது அல்லது AI உதவி கேட்கும்போது அதற்குரிய விவரங்கள் Google Vertex AI க்கு அனுப்பப்படும். மொழிபெயர்ப்பில் தவறு இருக்கலாம். விலை, அளவு மற்றும் ஏற்பாடுகளை மற்றவருடன் உறுதிப்படுத்தவும். வங்கி விவரங்கள், கடவுச்சொற்கள் அல்லது முக்கியத் தனிப்பட்ட தகவல்களை அனுப்ப வேண்டாம்.</p><p>தகவலைப் பார்க்க, திருத்த, நீக்க அல்லது புகார் அளிக்க கீழுள்ள உதவியைத் தொடர்புகொள்ளவும். தற்போது தகவல் நீக்கம் சேவை நிர்வாகியால் செய்யப்படுகிறது. பயன்படுத்தும் முன் தகவல் சேமிப்புக் காலம் மற்றும் காப்புப்பிரதி நடைமுறைகளை விசாரிக்கவும்.</p></section>
+ <section lang="en"><h2>Verified email and private KYC</h2><p>Public registration uses Firebase email/password and requires email verification; SMS is disabled in this evaluation deployment. Buyer/seller KYC is optional. With your explicit consent, the uploaded document image and supplied legal/business names are sent to Google Vertex AI for readability, name-consistency and anomaly checks. AI cannot establish authenticity. An authorized human reviewer at mail@hyperway.site can inspect the private evidence and make a decision. Documents are removed after a decision or within 30 days, whichever comes first. Legal/business details, status and review notes remain for the verification record. You can contact support to request deletion. Never upload personal documents using a shared demo account.</p><p>Completed trades allow one rating from each participant. Names, ratings, comments and the transparent trust score are public. AI-only checks do not grant human-verified KYC points. A score is not an identity, safety or quality guarantee.</p></section>
+ <section lang="si"><h2>Email සහ පෞද්ගලික KYC</h2><p>Firebase email/password ගිණුම තහවුරු කළ යුතුයි. SMS අක්‍රියයි. ඔබ එකඟ වූ විට KYC ලේඛනය Google Vertex AI වෙත නම ගැළපීම, පැහැදිලි බව සහ අසාමාන්‍යතා පරීක්ෂා කිරීමට යවයි. AI මගින් සැබෑ අනන්‍යතාව සහතික නොකරයි. බලයලත් mail@hyperway.site reviewer කෙනෙකුට පෞද්ගලික සාක්ෂි පරීක්ෂා කළ හැක. තීරණයෙන් පසු හෝ දින 30ක් ඇතුළත රූපය ඉවත් කරයි. නම, තත්ත්වය සහ review සටහන් තබයි. ගනුදෙනු ඇගයීම් පොදුයි. Shared demo accounts වලට පුද්ගලික ලේඛන දාන්න එපා.</p></section>
+ <section lang="ta"><h2>மின்னஞ்சல் மற்றும் தனிப்பட்ட KYC</h2><p>Firebase மின்னஞ்சல் கணக்கு சரிபார்க்கப்பட வேண்டும். SMS முடக்கப்பட்டுள்ளது. உங்கள் ஒப்புதலுடன் KYC படம் பெயர் பொருத்தம், வாசிப்புத்தன்மை மற்றும் முரண்பாடுகள் சோதனைக்காக Google Vertex AI க்கு அனுப்பப்படும். AI உண்மையான அடையாளத்தைச் சான்றளிக்காது. அங்கீகரிக்கப்பட்ட mail@hyperway.site மதிப்பாய்வாளர் தனிப்பட்ட ஆதாரத்தைப் பார்க்கலாம். முடிவுக்குப் பின் அல்லது 30 நாட்களுக்குள் படம் நீக்கப்படும். பெயர், நிலை மற்றும் மதிப்பாய்வுக் குறிப்புகள் சேமிக்கப்படும். வர்த்தக மதிப்புரைகள் பொதுவானவை. பகிரப்பட்ட மாதிரிக் கணக்குகளில் தனிப்பட்ட ஆவணங்களைப் பதிவேற்ற வேண்டாம்.</p></section>
  <p>Support / සහාය / உதவி: '''+support+'''</p><a href="https://policies.google.com/privacy">Google privacy information</a></main></body></html>'''
 
 from community import install as install_community
