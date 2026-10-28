@@ -8,6 +8,10 @@ Working evaluation prototype for Google Cloud AI Builder Cup 2026, Sustainabilit
 
 **Hyper Way:** leader Sathini Dewmanthi Jayamaha; member Sandun Nayanaka Subasingha.
 
+## Contributors
+
+- [Sathini Dewmanthi Jayamaha (@Dewmanthi)](https://github.com/Dewmanthi) — Team leader.
+
 ## Try the application
 
 Create an account as a farmer/seller, buyer, driver or worker. Open Firebase's verification email, verify, then sign in. Password reset and logout are available. All SMS regions remain blocked; the deployment uses email, not phone authentication.
